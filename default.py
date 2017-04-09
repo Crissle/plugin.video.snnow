@@ -1,4 +1,5 @@
 import snnow
+from adobe import AdobePass
 import xbmc, xbmcplugin, xbmcgui, xbmcaddon, os, urllib, urlparse
 
 __settings__ = xbmcaddon.Addon(id='plugin.video.snnow')
@@ -34,25 +35,14 @@ def createMainMenu():
     """
 
     sn = snnow.SportsnetNow()
-    creds = getAuthCredentials()
-    if creds == None:
-        xbmcplugin.endOfDirectory(int(sys.argv[1]))
-        return
-
-    sn.checkMSOs()
-    if not sn.authorize(creds['u'], creds['p'], creds['m']):
-        dialog = xbmcgui.Dialog()
-        dialog.ok(__language__(30004), __language__(30004))
-        xbmcplugin.endOfDirectory(handle = int(sys.argv[1]),
-                                  succeeded=False)
 
     channels = sn.getChannels()
     guide = sn.getGuideData()
-    
+
     for channel in channels:
-        chanId = str(channel['id'])
-        values = { 'menu' : 'channel', 'name' : channel['name'],
-                   'id' : channel['id'], 'abbr' : channel['abbr'] }
+        chanId = str(channel['neulion_id'])
+        values = { 'menu' : 'channel', 'name' : channel['description'],
+                   'id' : channel['neulion_id'], 'abbr' : channel['id'] }
 
         title = values['name']
         showTitle = channel['name']
@@ -73,37 +63,19 @@ def createMainMenu():
         live = xbmcgui.ListItem(title)
         
         labels = {"TVShowTitle" : showTitle,
-                  "Studio" : channel['name']}
+                  "Studio" : channel['description']}
         if 'title' in values:
             labels['Title'] = prog['title']
         if 'plot' in values:
             labels["Plot"] = prog['plot']
+            labels['plotoutline'] = prog['plot']
         live.setInfo(type="Video", infoLabels=labels)
+        if 'cast_image_url' in channel:
+            live.setIconImage(channel['cast_image_url'])
         xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),
                                     url=sys.argv[0] + "?" + urllib.urlencode(values),
                                     listitem=live,
                                     isFolder=True)
-
-    # signal the end of the directory
-    xbmcplugin.endOfDirectory(int(sys.argv[1]))
-
-
-def createLiveMenu(values):
-    pid = values['provider'][0]
-    pf = providerfactory.ProviderFactory()
-    provider = pf.getProviders()[pid]
-
-
-    channels = provider.getChannels()
-    for channel in channels:
-        values = { 'menu' : 'channel', 'provider' : pid,
-                   'name' : channel['name'], 'id' : channel['id'],
-                   'abbr' : channel['abbr'] }
-        live = xbmcgui.ListItem(values['name'])
-        xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),
-                                    url=sys.argv[0] + "?" + urllib.urlencode(values),
-                                    listitem=live,
-                                    isFolder=False)
 
     # signal the end of the directory
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
@@ -162,12 +134,25 @@ if len(sys.argv[2]) == 0:
     if not os.path.exists(data_path):
         os.makedirs(data_path)
 
+    # log in
+    if AdobePass.getAuthnToken() == None:
+        sn = snnow.SportsnetNow()
+        creds = getAuthCredentials()
+        if creds == None:
+            xbmcplugin.endOfDirectory(int(sys.argv[1]))
+            sys.exit(1)
+
+        sn.checkMSOs()
+        if not sn.authorize(creds['u'], creds['p'], creds['m']):
+            dialog = xbmcgui.Dialog()
+            dialog.ok(__language__(30004), __language__(30004))
+            xbmcplugin.endOfDirectory(handle = int(sys.argv[1]),
+                                      succeeded=False)
+
     # show the main menu
     createMainMenu()
 else:
     values = urlparse.parse_qs(sys.argv[2][1:])
-    if values['menu'][0] == 'live':
-        createLiveMenu(values)
-    elif values['menu'][0] == 'channel':
+    if values['menu'][0] == 'channel':
         playChannel(values)
 
