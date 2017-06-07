@@ -98,6 +98,8 @@ def playChannel(values):
 
     stream = streams[bitrates[index]]
 
+    print "MICAH playing '{0}'".format(stream);
+
     if not stream:
         dialog = xbmcgui.Dialog()
         dialog.ok(__language__(30004), __language__(30005))
@@ -136,19 +138,21 @@ if len(sys.argv[2]) == 0:
 
     # log in
     if AdobePass.getAuthnToken() == None:
+        progress = xbmcgui.DialogProgress()
         sn = snnow.SportsnetNow()
         creds = getAuthCredentials()
         if creds == None:
             xbmcplugin.endOfDirectory(int(sys.argv[1]))
             sys.exit(1)
 
+        progress.create(__language__(30006), creds['m'])
         sn.checkMSOs()
         if not sn.authorize(creds['u'], creds['p'], creds['m']):
             dialog = xbmcgui.Dialog()
             dialog.ok(__language__(30004), __language__(30004))
-            xbmcplugin.endOfDirectory(handle = int(sys.argv[1]),
-                                      succeeded=False)
-
+            progress.close()
+            sys.exit(1)
+        progress.close()
     # show the main menu
     createMainMenu()
 else:

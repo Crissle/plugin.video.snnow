@@ -52,7 +52,9 @@ if abbr:
     for bitrate in reversed(sorted(bitrates)):
         if stream == None:
             stream = streams[str(bitrate)]
-    
+
+    print stream
+
     if not options.ffplay == None:
         fstream = ""
         fstream += ' -cookies "'

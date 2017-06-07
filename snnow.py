@@ -296,15 +296,15 @@ class SportsnetNow:
             print e.getcode()
             return streams
 
+        cookie_str = ''
         cookies = []
         for header in resp.info().headers:
             if header[:10] == 'Set-Cookie':
                 cookie = header[12:]
+                cookie_str += urllib.quote(cookie.strip() + '\n' )
                 if raw_cookies != None:
                     raw_cookies.append(cookie)
-                idx = cookie.index('; ')
-                cookie = cookie[:idx]
-                cookies.append(urllib.quote(cookie))
+                cookies.append(cookie.strip())
 
         m3u8 = resp.read();
 
@@ -323,10 +323,16 @@ class SportsnetNow:
                 else:
                     print "Unable to parse bandwidth"
             elif line[-5:] == ".m3u8":
-                
-                stream = prefix + line + "|User-Agent=" + urllib.quote(self.USER_AGENT) + "&Cookie="
+
+                stream = prefix + line + "|User-Agent={0}".format(urllib.quote(self.USER_AGENT))
+                """cookie_num = 0
                 for cookie in cookies:
-                    stream += cookie + "; "
+                    stream += "&Cookie{0}={1}".format(str(cookie_num), urllib.quote(cookie))
+                    cookie_num += 1
+                streams[bandwidth] = stream
+                """
+                stream = prefix + line + "|User-Agent={0}&Cookies={1}"
+                stream = stream.format(urllib.quote(self.USER_AGENT),cookie_str)
                 streams[bandwidth] = stream
 
         return streams
